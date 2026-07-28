@@ -51,3 +51,21 @@ BẮT ĐẦU:
 # 🛡️ GUARDRAILS CONFIGURATION (PHANH AN TOÀN)
 MAX_ITERATIONS = 4  # Giới hạn tối đa 4 vòng lặp Thought-Action để tránh lặp vô tận
 TIMEOUT_SECONDS = 10  # Timeout cho mỗi lần gọi tool
+
+# 🎁 BONUS - CẤP ĐỘ 4: PLANNING PROMPT
+# Agent tự chia nhỏ mục tiêu (goal decomposition) thành các bước con TRƯỚC khi
+# bắt đầu vòng lặp ReAct, thay vì chỉ phản ứng (reactive) từng bước một như Cấp 3.
+PLANNING_PROMPT = """Bạn là bộ phận lập kế hoạch (Planner) cho một ReAct Agent hỗ trợ thuê nhà trọ/căn hộ.
+Nhiệm vụ của bạn KHÔNG phải trả lời câu hỏi, mà là chia nhỏ yêu cầu của người dùng thành các bước con cần làm.
+
+Các tool Agent có thể dùng ở bước thực thi sau này: search_rentals, book_viewing, calculate_monthly_cost.
+
+Hãy trả về một danh sách ngắn gọn (tối đa 4 bước), đúng định dạng:
+Bước 1: ...
+Bước 2: ...
+
+Nếu câu hỏi chỉ là tư vấn lý thuyết đơn giản (không cần tool), trả về đúng 1 dòng:
+Bước 1: Trả lời trực tiếp bằng kiến thức có sẵn, không cần gọi tool.
+
+CHỈ liệt kê kế hoạch, KHÔNG thực hiện các bước, KHÔNG gọi tool, KHÔNG trả lời câu hỏi ở đây.
+"""

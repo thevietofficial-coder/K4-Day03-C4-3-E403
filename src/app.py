@@ -21,7 +21,7 @@ if sys.stdout.encoding != 'utf-8':
 
 # Import các thành phần từ file của Role 2, Role 3 & Multi-Provider Adapter
 from tools import AVAILABLE_TOOLS
-from prompts import CHATBOT_BASELINE_PROMPT, REACT_SYSTEM_PROMPT, MAX_ITERATIONS
+from prompts import CHATBOT_BASELINE_PROMPT, REACT_SYSTEM_PROMPT, MAX_ITERATIONS, PLANNING_PROMPT
 from providers import get_llm_provider
 
 load_dotenv()
@@ -111,16 +111,48 @@ def execute_tool(tool_name: str, raw_args: str) -> str:
         return f"LỖI: Tool '{tool_name}' gặp sự cố khi thực thi: {e}"
 
 
-def run_react_agent(user_query: str, provider) -> dict:
+def generate_plan(user_query: str, provider) -> str:
+    """
+    🎁 BONUS Cấp độ 4 - PLANNING: chia nhỏ mục tiêu người dùng thành các bước con
+    TRƯỚC KHI Agent bắt đầu vòng lặp ReAct, thay vì chỉ phản ứng từng bước (Cấp 3).
+    """
+    response = provider.generate(user_query, system_prompt=PLANNING_PROMPT)
+    return response.strip()
+
+
+def summarize_memory(memory: list) -> str:
+    """
+    🎁 BONUS Cấp độ 4 - MEMORY: tóm tắt tối đa 3 lượt hỏi-đáp gần nhất thành ngữ
+    cảnh hội thoại, cho phép người dùng hỏi tiếp kiểu "đặt lịch phòng vừa tìm được"
+    mà không cần lặp lại toàn bộ chi tiết như Cấp 3 (mỗi câu hỏi độc lập, không nhớ gì).
+    """
+    if not memory:
+        return ""
+
+    lines = ["[BỘ NHỚ HỘI THOẠI - Các lượt hỏi đáp trước đó trong phiên này]"]
+    for i, turn in enumerate(memory[-3:], 1):
+        lines.append(f"Lượt {i} - Người dùng hỏi: {turn['question']}")
+        lines.append(f"Lượt {i} - Agent đã trả lời: {turn['answer']}")
+    lines.append("[HẾT BỘ NHỚ - Bên dưới là câu hỏi MỚI cần xử lý]\n")
+    return "\n".join(lines) + "\n"
+
+
+def run_react_agent(user_query: str, provider, memory_context: str = "", plan: str = "") -> dict:
     """
     Vòng lặp ReAct Agent thật: gọi LLM -> parse Action -> thực thi Tool ->
     chèn Observation thật vào prompt -> lặp lại cho tới Final Answer hoặc
     chạm phanh Guardrail MAX_ITERATIONS.
 
+    memory_context và plan là 2 tham số BONUS Cấp độ 4 (tùy chọn, mặc định rỗng
+    để không phá vỡ hành vi Cấp 3 gốc): nếu có, chúng được chèn vào đầu prompt
+    làm ngữ cảnh bổ sung cho LLM trước khi suy luận Thought->Action.
+
     Trả về dict {"final_answer": str, "trace": [...], "guardrail_triggered": bool}
     để cả CLI (in ra console) lẫn giao diện web đều dùng chung 1 nguồn logic.
     """
     print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
+
+    plan_context = f"[KẾ HOẠCH ĐÃ LẬP]\n{plan}\n[HẾT KẾ HOẠCH]\n\n" if plan else ""
 
     transcript = ""        # Toàn bộ lịch sử Thought/Action/Observation đã tích lũy
     last_signature = None  # Để phát hiện Agent bị lặp lại đúng 1 hành động
@@ -129,7 +161,7 @@ def run_react_agent(user_query: str, provider) -> dict:
     for step in range(1, MAX_ITERATIONS + 1):
         print(f"\n--- 🔄 Vòng lặp ReAct (Step {step}/{MAX_ITERATIONS}) ---")
 
-        prompt = f"Question: {user_query}\n{transcript}"
+        prompt = f"{memory_context}{plan_context}Question: {user_query}\n{transcript}"
         response = provider.generate(prompt, system_prompt=REACT_SYSTEM_PROMPT)
         kind, payload, raw_args = parse_llm_output(response)
 
@@ -137,7 +169,7 @@ def run_react_agent(user_query: str, provider) -> dict:
             print(f"🧠 {response.strip()}")
             print(f"🏁 Final Answer: {payload}")
             trace.append({"step": step, "type": "final", "thought": response.strip(), "final_answer": payload})
-            return {"final_answer": payload, "trace": trace, "guardrail_triggered": False}
+            return {"final_answer": payload, "trace": trace, "guardrail_triggered": False, "plan": plan}
 
         if kind == "invalid":
             print(f"⚠️ LLM trả về sai định dạng:\n{response.strip()}")
@@ -175,7 +207,7 @@ def run_react_agent(user_query: str, provider) -> dict:
     )
     print(f"🏁 Final Answer (Safe Fallback): {fallback}")
     trace.append({"step": MAX_ITERATIONS, "type": "guardrail", "final_answer": fallback})
-    return {"final_answer": fallback, "trace": trace, "guardrail_triggered": True}
+    return {"final_answer": fallback, "trace": trace, "guardrail_triggered": True, "plan": plan}
 
 
 def run_all_test_cases(provider):
@@ -209,10 +241,19 @@ def run_one_test_case(provider, test_id: int = 1):
 
 
 def run_interactive_mode(provider):
-    """Chế độ chat trực tiếp: người dùng tự gõ câu hỏi và chọn Baseline hoặc ReAct Agent."""
+    """
+    Chế độ chat trực tiếp: người dùng tự gõ câu hỏi và chọn Baseline hoặc ReAct Agent.
+
+    🎁 BONUS Cấp độ 4: ReAct Agent ở đây có thêm Planning (tự lập kế hoạch trước khi
+    hành động) và Memory (nhớ tối đa 3 lượt hỏi-đáp gần nhất trong cùng phiên chat).
+    Chatbot Baseline KHÔNG có 2 tính năng này — giữ nguyên là "Cấp 2" để so sánh công bằng.
+    """
     print("\n" + "=" * 70)
     print("💬 CHẾ ĐỘ TƯƠNG TÁC — Gõ câu hỏi của bạn (gõ 'exit' để thoát)")
+    print("   🎁 ReAct Agent ở đây có Planning + Memory (Cấp độ 4)")
     print("=" * 70)
+
+    session_memory = []  # Bộ nhớ hội thoại của ReAct Agent trong phiên hiện tại
 
     while True:
         user_query = input("\n👤 Bạn hỏi: ").strip()
@@ -223,13 +264,22 @@ def run_interactive_mode(provider):
             break
 
         mode = input("   Chọn chế độ [1=Baseline Chatbot / 2=ReAct Agent / 3=Cả hai] (mặc định 2): ").strip()
+
         if mode == "1":
             run_baseline_chatbot(user_query, provider)
-        elif mode == "3":
+            continue
+
+        # Từ đây trở đi luôn cần chạy ReAct Agent (mode 2 hoặc 3) -> áp dụng Planning + Memory
+        if mode == "3":
             run_baseline_chatbot(user_query, provider)
-            run_react_agent(user_query, provider)
-        else:
-            run_react_agent(user_query, provider)
+
+        plan = generate_plan(user_query, provider)
+        print(f"\n🗺️ Kế hoạch (Planning): {plan}")
+
+        memory_context = summarize_memory(session_memory)
+        result = run_react_agent(user_query, provider, memory_context=memory_context, plan=plan)
+
+        session_memory.append({"question": user_query, "answer": result["final_answer"]})
 
 
 if __name__ == "__main__":

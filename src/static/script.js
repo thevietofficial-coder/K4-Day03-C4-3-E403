@@ -3,8 +3,19 @@ const composerForm = document.getElementById("composerForm");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const modeToggle = document.getElementById("modeToggle");
+const resetBtn = document.getElementById("resetBtn");
 
 let currentMode = "agent";
+
+resetBtn.addEventListener("click", async () => {
+  await fetch("/api/reset", { method: "POST" });
+  chatWindow.innerHTML = `
+    <div class="msg msg-assistant">
+      <div class="msg-avatar">🏠</div>
+      <div class="msg-bubble">🔄 Đã bắt đầu phiên trò chuyện mới — bộ nhớ hội thoại đã được xoá.</div>
+    </div>
+  `;
+});
 
 modeToggle.addEventListener("click", (e) => {
   const btn = e.target.closest(".mode-btn");
@@ -82,7 +93,7 @@ function renderTraceStep(step) {
   return wrap;
 }
 
-function addAssistantMessage({ tagText, tagClass, bodyText, trace }) {
+function addAssistantMessage({ tagText, tagClass, bodyText, trace, plan }) {
   const el = document.createElement("div");
   el.className = "msg msg-assistant" + (tagClass === "tag-agent" ? " msg-agent" : "");
 
@@ -93,6 +104,16 @@ function addAssistantMessage({ tagText, tagClass, bodyText, trace }) {
   tag.className = "msg-tag " + tagClass;
   tag.textContent = tagText;
   bubble.appendChild(tag);
+
+  if (plan) {
+    const planBox = document.createElement("div");
+    planBox.className = "plan-box";
+    planBox.innerHTML = `<span class="plan-label">🗺️ Kế hoạch (Planning)</span>`;
+    const planText = document.createElement("div");
+    planText.textContent = plan;
+    planBox.appendChild(planText);
+    bubble.appendChild(planBox);
+  }
 
   const body = document.createElement("div");
   body.textContent = bodyText;
@@ -164,6 +185,7 @@ async function sendMessage(message) {
         tagClass: data.agent.guardrail_triggered ? "tag-guardrail" : "tag-agent",
         bodyText: data.agent.final_answer,
         trace: data.agent.trace,
+        plan: data.agent.plan,
       });
     }
   } catch (err) {

@@ -10,11 +10,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, jsonify, render_template, request
 
-from app import run_baseline_chatbot, run_react_agent
+from app import generate_plan, run_baseline_chatbot, run_react_agent, summarize_memory
 from providers import get_llm_provider
 
 app = Flask(__name__)
 provider = get_llm_provider()
+
+# 🎁 BONUS Cấp độ 4 - MEMORY: bộ nhớ hội thoại dùng chung cho phiên demo local
+# (app này chỉ phục vụ 1 người dùng tại 1 thời điểm, nên dùng biến toàn cục là đủ).
+session_memory = []
 
 
 @app.route("/")
@@ -43,10 +47,20 @@ def api_chat():
         result["baseline"] = {"response": baseline_response}
 
     if mode in ("agent", "both"):
-        agent_result = run_react_agent(message, provider)
+        plan = generate_plan(message, provider)
+        memory_context = summarize_memory(session_memory)
+        agent_result = run_react_agent(message, provider, memory_context=memory_context, plan=plan)
         result["agent"] = agent_result
+        session_memory.append({"question": message, "answer": agent_result["final_answer"]})
 
     return jsonify(result)
+
+
+@app.route("/api/reset", methods=["POST"])
+def api_reset():
+    """🎁 Xoá bộ nhớ hội thoại để bắt đầu phiên chat mới."""
+    session_memory.clear()
+    return jsonify({"status": "ok"})
 
 
 if __name__ == "__main__":
