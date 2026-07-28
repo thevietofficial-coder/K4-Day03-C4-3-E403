@@ -19,7 +19,7 @@ if sys.stdout.encoding != 'utf-8':
         pass
 
 # Import các thành phần từ file của Role 2, Role 3 & Multi-Provider Adapter
-from tools import AVAILABLE_TOOLS, get_weather, search_flights
+from tools import AVAILABLE_TOOLS, search_rentals, book_viewing, calculate_monthly_cost, get_weather, search_flights
 from prompts import CHATBOT_BASELINE_PROMPT, REACT_SYSTEM_PROMPT, MAX_ITERATIONS
 from providers import get_llm_provider
 
@@ -62,16 +62,16 @@ def run_react_agent(user_query: str, provider):
         print(f"\n--- 🔄 Vòng lặp ReAct (Step {step}/{MAX_ITERATIONS}) ---")
         
         if step == 1:
-            print("🧠 Thought: Câu hỏi này cần tra cứu thời tiết thời gian thực.")
-            print("🛠️ Action: get_weather['Hà Nội']")
+            print("🧠 Thought: Câu hỏi này yêu cầu tìm phòng trọ tại Cầu Giấy dưới 5 triệu/tháng.")
+            print("🛠️ Action: search_rentals['Cầu Giấy', 5000000]")
             
             # Thực thi tool
-            obs = get_weather("Hà Nội")
-            print(f"👁️ Observation: {obs}")
+            obs = search_rentals("Cầu Giấy", 5000000)
+            print(f"👁️ Observation:\n{obs}")
             
         elif step == 2:
-            print("🧠 Thought: Tôi đã có thông tin thời tiết Hà Nội, giờ tôi có thể tư vấn trang phục.")
-            print("🏁 Final Answer: Thời tiết Hà Nội hôm nay 28°C, nắng nhẹ. Bạn nên mặc áo phông thoáng mát!")
+            print("🧠 Thought: Tôi đã có danh sách các phòng trọ phù hợp tại Cầu Giấy dưới 5 triệu.")
+            print("🏁 Final Answer: Hiện tại ở Cầu Giấy có 2 phòng phù hợp dưới 5 triệu:\n- [R101] Phòng trọ khép kín full đồ: 4,500,000 VNĐ/tháng\n- [R103] Chung cư mini ban công thoáng mát: 3,800,000 VNĐ/tháng\nBạn muốn đặt lịch xem phòng nào không?")
             break
             
     if step >= MAX_ITERATIONS:
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     tests = load_test_cases()
     print(f"✅ Đã tải thành công {len(tests)} Test Cases từ config/test_cases.json\n")
     
-    # Chạy thử câu test số 3
+    # Chạy thử câu test số 3 (Tìm phòng ở Cầu Giấy dưới 5 triệu)
     sample_query = tests[2]["question"]
     
     print("--- DEMO 1: CHẠY TRÊN CHATBOT BASELINE ---")
