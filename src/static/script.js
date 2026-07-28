@@ -8,7 +8,10 @@ const resetBtn = document.getElementById("resetBtn");
 let currentMode = "agent";
 
 resetBtn.addEventListener("click", async () => {
+  if (isSending) return;
+  resetBtn.disabled = true;
   await fetch("/api/reset", { method: "POST" });
+  resetBtn.disabled = false;
   chatWindow.innerHTML = `
     <div class="msg msg-assistant">
       <div class="msg-avatar">🏠</div>
@@ -148,10 +151,16 @@ function addAssistantMessage({ tagText, tagClass, bodyText, trace, plan }) {
   scrollToBottom();
 }
 
+let isSending = false;
+
 async function sendMessage(message) {
+  if (isSending) return;
+  isSending = true;
+
   addUserMessage(message);
   addTypingIndicator();
   sendBtn.disabled = true;
+  messageInput.disabled = true;
 
   try {
     const res = await fetch("/api/chat", {
@@ -196,14 +205,20 @@ async function sendMessage(message) {
       bodyText: "Không thể kết nối tới server. Vui lòng thử lại.",
     });
   } finally {
+    isSending = false;
     sendBtn.disabled = false;
+    messageInput.disabled = false;
+    messageInput.focus();
   }
 }
 
 composerForm.addEventListener("submit", (e) => {
   e.preventDefault();
+  if (isSending) return;
   const text = messageInput.value.trim();
   if (!text) return;
   messageInput.value = "";
   sendMessage(text);
 });
+
+messageInput.focus();

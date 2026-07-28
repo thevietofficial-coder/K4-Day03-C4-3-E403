@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>🏠 Trợ Lý Tìm Nhà Trọ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -52,12 +53,17 @@
         id="messageInput"
         placeholder="Nhập câu hỏi của bạn... (VD: Tìm phòng ở Cầu Giấy dưới 5 triệu)"
         autocomplete="off"
+        maxlength="1000"
         required
       >
-      <button type="submit" id="sendBtn">
+      <button type="submit" id="sendBtn" aria-label="Gửi câu hỏi">
         <span class="send-icon">➤</span>
       </button>
     </form>
+
+    <footer class="app-footer">
+      🏫 VinUni AI Codelab · Lab 03 — Chatbot vs ReAct Agent · Đề tài: Tìm & Đặt lịch xem nhà trọ
+    </footer>
   </div>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>

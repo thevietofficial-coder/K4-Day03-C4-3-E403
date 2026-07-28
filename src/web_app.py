@@ -20,6 +20,9 @@ provider = get_llm_provider()
 # (app này chỉ phục vụ 1 người dùng tại 1 thời điểm, nên dùng biến toàn cục là đủ).
 session_memory = []
 
+VALID_MODES = ("baseline", "agent", "both")
+MAX_MESSAGE_LENGTH = 1000
+
 
 @app.route("/")
 def index():
@@ -39,6 +42,10 @@ def api_chat():
 
     if not message:
         return jsonify({"error": "Vui lòng nhập câu hỏi."}), 400
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return jsonify({"error": f"Câu hỏi quá dài (tối đa {MAX_MESSAGE_LENGTH} ký tự)."}), 400
+    if mode not in VALID_MODES:
+        mode = "agent"
 
     result = {}
 
@@ -70,4 +77,6 @@ if __name__ == "__main__":
     print("==================================================")
     print(f"🔌 LLM Provider: {provider.__class__.__name__} (Model: {model_name})")
     print("🚀 Mở trình duyệt tại: http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
+    # FLASK_DEBUG=0 để tắt chế độ debug (khuyến nghị nếu máy có mở port ra ngoài mạng LAN/Internet).
+    debug_mode = os.getenv("FLASK_DEBUG", "1") == "1"
+    app.run(debug=debug_mode, port=5000)
