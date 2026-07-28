@@ -44,7 +44,22 @@ class GeminiProvider(BaseLLMProvider):
                 model=self.model_name,
                 contents=contents
             )
-            return response.text
+            text = (response.text or "").strip()
+            if text:
+                return text
+
+            # Gọi API thành công nhưng không có nội dung văn bản (thường do model
+            # "thinking" dùng hết token cho suy luận nội bộ, hoặc bị bộ lọc an toàn
+            # chặn). Không được trả chuỗi rỗng ra ngoài -> UI sẽ hiện bong bóng trống.
+            finish_reason = None
+            try:
+                finish_reason = response.candidates[0].finish_reason
+            except Exception:
+                pass
+            return (
+                f"[Gemini Error]: Model trả về phản hồi rỗng (finish_reason={finish_reason}). "
+                "Vui lòng thử lại hoặc đặt câu hỏi ngắn gọn/cụ thể hơn."
+            )
         except Exception as e:
             return f"[Gemini Exception]: {str(e)}"
 
@@ -70,7 +85,11 @@ class OpenAIProvider(BaseLLMProvider):
                 model=self.model_name,
                 messages=messages
             )
-            return response.choices[0].message.content
+            content = (response.choices[0].message.content or "").strip()
+            if content:
+                return content
+            finish_reason = getattr(response.choices[0], "finish_reason", None)
+            return f"[OpenAI Error]: Model trả về phản hồi rỗng (finish_reason={finish_reason})."
         except Exception as e:
             return f"[OpenAI Exception]: {str(e)}"
 
@@ -96,7 +115,10 @@ class AnthropicProvider(BaseLLMProvider):
                 kwargs["system"] = system_prompt
                 
             response = client.messages.create(**kwargs)
-            return response.content[0].text
+            text = (response.content[0].text or "").strip() if response.content else ""
+            if text:
+                return text
+            return f"[Anthropic Error]: Model trả về phản hồi rỗng (stop_reason={getattr(response, 'stop_reason', None)})."
         except Exception as e:
             return f"[Anthropic Exception]: {str(e)}"
 
@@ -127,7 +149,11 @@ class OpenRouterProvider(BaseLLMProvider):
             res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=30)
             if res.status_code == 200:
                 data = res.json()
-                return data["choices"][0]["message"]["content"]
+                content = (data["choices"][0]["message"]["content"] or "").strip()
+                if content:
+                    return content
+                finish_reason = data["choices"][0].get("finish_reason")
+                return f"[OpenRouter Error]: Model trả về phản hồi rỗng (finish_reason={finish_reason})."
             else:
                 return f"[OpenRouter API Error {res.status_code}]: {res.text}"
         except Exception as e:

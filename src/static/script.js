@@ -119,7 +119,7 @@ function addAssistantMessage({ tagText, tagClass, bodyText, trace, plan }) {
   }
 
   const body = document.createElement("div");
-  body.textContent = bodyText;
+  body.textContent = (bodyText && bodyText.trim()) ? bodyText : "⚠️ (Không nhận được nội dung phản hồi từ model. Vui lòng thử lại.)";
   bubble.appendChild(document.createElement("br"));
   bubble.appendChild(body);
 
