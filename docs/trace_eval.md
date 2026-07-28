@@ -55,3 +55,46 @@ Role 4 đã chạy `run_baseline_chatbot()` thật trên cả 5 test case. Kết
 **Điểm đáng chú ý ở Test #3:** Dù không bịa mã phòng cụ thể, Chatbot vẫn tự đưa ra khoảng giá ước lượng như `3,5-4,5 triệu` / `4,5-5 triệu` dựa trên kiến thức chung thị trường. Đây là ranh giới mờ giữa `safe fallback` và hallucination nhẹ về số liệu thị trường, vì không có grounding từ tool hoặc database thật.
 
 **Nhận xét Role 5:** Chatbot baseline phù hợp với các câu hỏi tư vấn lý thuyết (#1, #2), nhưng không giải quyết được các yêu cầu cần dữ liệu thực tế hoặc thao tác đặt lịch (#3, #4, #5). Test #3 là bằng chứng tốt cho luận điểm: chatbot nghe có vẻ hợp lý nhưng không có grounding thật, nên ReAct Agent có tool là cần thiết với đề tài thuê nhà.
+
+---
+
+## 🔁 4. MỐC 3 - REACT TRACE LOG (ROLE 5)
+
+**Test case được trích xuất:** #4  
+**Câu hỏi:** *"Tìm phòng ở Quận 1 dưới 7 triệu, sau đó đặt lịch xem phòng ID R102 cho Nguyễn Văn A, SĐT 0901234567 vào 15:00 ngày mai."*
+
+### Trace `Thought -> Action -> Observation`
+
+```text
+Question: Tìm phòng ở Quận 1 dưới 7 triệu, sau đó đặt lịch xem phòng ID R102 cho Nguyễn Văn A, SĐT 0901234567 vào 15:00 ngày mai.
+
+Thought 1: Cần tra cứu trước danh sách phòng ở Quận 1 có giá dưới 7 triệu/tháng để kiểm tra phòng R102 có phù hợp và còn trống không.
+Action 1: search_rentals["Quận 1", 7000000, ""]
+Observation 1:
+Tìm thấy 1 phòng phù hợp tại Quận 1:
+- [Mã phòng: R102] Căn hộ dịch vụ 1PN sang trọng | Loại: Căn hộ dịch vụ
+  Địa chỉ: Số 88 Nguyễn Trãi, Quận 1, TP.HCM
+  Giá thuê: 6,800,000 VNĐ/tháng | Trạng thái: Còn trống
+
+Thought 2: Đã xác nhận R102 tồn tại, dưới 7 triệu và còn trống. Tiếp theo cần đặt lịch xem phòng theo thông tin người dùng cung cấp.
+Action 2: book_viewing["R102", "Nguyễn Văn A", "0901234567", "15:00 ngày mai"]
+Observation 2:
+✅ ĐẶT LỊCH XEM PHÒNG THÀNH CÔNG!
+- Mã phòng: R102 (Căn hộ dịch vụ 1PN sang trọng)
+- Địa chỉ: Số 88 Nguyễn Trãi, Quận 1, TP.HCM
+- Khách hàng: Nguyễn Văn A (SĐT: 0901234567)
+- Thời gian hẹn: 15:00 ngày mai
+Chủ nhà/Quản lý phòng đã ghi nhận lịch hẹn và sẽ gọi xác nhận trước 30 phút.
+
+Thought 3: Tôi đã có đủ thông tin từ Observation để trả lời người dùng.
+Final Answer: Đã tìm thấy phòng R102 ở Quận 1 với giá 6,800,000 VNĐ/tháng, trạng thái còn trống, và đã đặt lịch xem phòng cho Nguyễn Văn A vào 15:00 ngày mai. Chủ nhà/quản lý sẽ gọi xác nhận trước 30 phút.
+```
+
+### Nhận xét trace
+
+| Tiêu chí | Đánh giá |
+| :--- | :--- |
+| Tool selection | Agent gọi đúng thứ tự: `search_rentals` trước, sau đó `book_viewing`. |
+| Grounding | Câu trả lời cuối dựa trên Observation thật từ tool, có mã phòng, địa chỉ, giá thuê và trạng thái phòng. |
+| Termination | Agent dừng sau khi có đủ bằng chứng, không gọi tool thừa. |
+| Guardrail | Vòng lặp có `MAX_ITERATIONS`, giúp tránh lặp vô hạn nếu tool báo lỗi hoặc LLM sinh sai định dạng. |
