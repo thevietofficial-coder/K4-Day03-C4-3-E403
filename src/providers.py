@@ -28,7 +28,10 @@ class GeminiProvider(BaseLLMProvider):
     """Google Gemini Provider"""
     def __init__(self, api_key: str = None, model: str = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model_name = model or os.getenv("LLM_MODEL") or "gemini-2.5-flash"
+        # "gemini-2.5-flash" đã bị Google ngừng cấp cho tài khoản/API key mới (lỗi 404
+        # NOT_FOUND). Dùng alias "gemini-flash-latest" để luôn trỏ tới bản Flash GA
+        # mới nhất, tránh phải sửa code mỗi khi model cụ thể bị khai tử.
+        self.model_name = model or os.getenv("LLM_MODEL") or "gemini-flash-latest"
         
     def generate(self, prompt: str, system_prompt: str = "") -> str:
         if not self.api_key or self.api_key == "your_gemini_api_key_here":
@@ -132,12 +135,49 @@ class OpenRouterProvider(BaseLLMProvider):
 
 
 class MockProvider(BaseLLMProvider):
-    """Offline Mock Provider (Cho bài test không cần kết nối API)"""
+    """
+    Offline Mock Provider (Cho bài test không cần kết nối API/không có API key).
+    Mô phỏng đúng 3 loại system prompt của đề tài thuê nhà trọ: Planning, ReAct Agent,
+    Chatbot Baseline — để `python src/app.py` vẫn chạy demo được ngay cả khi .env
+    chưa cấu hình API key nào (đúng tinh thần "deterministic, chưa cần API key phức
+    tạp ngay từ đầu" của bài lab).
+    """
     def generate(self, prompt: str, system_prompt: str = "") -> str:
-        text = prompt.lower()
-        if "thời tiết" in text and "hà nội" in text:
-            return "Thought: Cần tra cứu thời tiết Hà Nội.\nAction: get_weather['Hà Nội']"
-        return "🤖 [Mock Provider]: Phản hồi giả lập offline cho bài test."
+        sp_lower = system_prompt.lower()
+        text_lower = prompt.lower()
+
+        # 1) Planning call (Bonus Cấp độ 4): chỉ liệt kê kế hoạch, không hành động
+        if "lập kế hoạch" in sp_lower:
+            if any(kw in text_lower for kw in ("tìm phòng", "tìm giúp", "đặt lịch", "chi phí")):
+                return (
+                    "Bước 1: Tra cứu phòng phù hợp bằng tool search_rentals.\n"
+                    "Bước 2: Nếu người dùng cần đặt lịch/tính chi phí, gọi tiếp tool tương ứng."
+                )
+            return "Bước 1: Trả lời trực tiếp bằng kiến thức có sẵn, không cần gọi tool."
+
+        # 2) Chatbot Baseline: không có tool trong system prompt -> không được gợi ý gọi tool
+        if "search_rentals" not in sp_lower:
+            return (
+                "🤖 [Mock Provider]: Đây là câu trả lời demo ngoại tuyến, không có dữ liệu "
+                "thời gian thực. Vui lòng cấu hình LLM_PROVIDER thật (gemini/openai/anthropic) "
+                "trong file .env để nhận câu trả lời đầy đủ."
+            )
+
+        # 3) ReAct Agent: mô phỏng 1 bước gọi tool rồi tổng hợp Final Answer
+        if "observation:" not in text_lower:
+            if "cầu giấy" in text_lower:
+                return 'Thought: Cần tra cứu phòng trọ ở Cầu Giấy.\nAction: search_rentals["Cầu Giấy", 5000000, ""]'
+            if "quận 1" in text_lower or "quan 1" in text_lower:
+                return 'Thought: Cần tra cứu phòng trọ ở Quận 1.\nAction: search_rentals["Quận 1", 7000000, ""]'
+            return (
+                "Thought: Đây là câu hỏi lý thuyết, không cần tra cứu dữ liệu thực tế.\n"
+                "Final Answer: [Mock Provider] Đây là câu trả lời demo ngoại tuyến, không thay thế LLM thật."
+            )
+
+        return (
+            "Thought: Đã có Observation ở bước trước, đủ dữ liệu để trả lời.\n"
+            "Final Answer: [Mock Provider] Đây là câu trả lời demo ngoại tuyến dựa trên Observation phía trên."
+        )
 
 
 def get_llm_provider(provider_name: str = None) -> BaseLLMProvider:

@@ -36,6 +36,9 @@ REACT_TOOLS = {name: fn for name, fn in AVAILABLE_TOOLS.items() if name in RENTA
 ACTION_PATTERN = re.compile(r"Action:\s*(\w+)\s*\[(.*?)\]")
 # Bắt "Final Answer: ..." (lấy hết phần còn lại, kể cả xuống dòng)
 FINAL_ANSWER_PATTERN = re.compile(r"Final Answer:\s*(.*)", re.DOTALL)
+# Tách tham số kiểu CSV có nháy: "Số 15, Ngõ 123", 5000000, "" -> giữ nguyên phần trong
+# nháy kể cả khi chứa dấu phẩy, thay vì tách bừa theo mọi dấu phẩy.
+ARG_SPLIT_PATTERN = re.compile(r'''\s*(?:"([^"]*)"|'([^']*)'|([^,]+))\s*(?:,|$)''')
 
 def load_test_cases():
     """Đọc bộ test cases từ config/test_cases.json của Role 1"""
@@ -83,10 +86,18 @@ def parse_llm_output(text: str):
 
 
 def parse_arguments(raw_args: str):
-    """'Cầu Giấy', 5000000, '' -> ["Cầu Giấy", "5000000", ""] (bỏ dấu nháy/khoảng trắng thừa)."""
+    """
+    '"Cầu Giấy", 5000000, ""' -> ["Cầu Giấy", "5000000", ""].
+    Nhận biết dấu nháy nên phần trong nháy chứa dấu phẩy (VD: địa chỉ "Số 15, Ngõ 123")
+    không bị tách nhầm thành 2 tham số riêng.
+    """
     if not raw_args.strip():
         return []
-    return [part.strip().strip("'").strip('"').strip() for part in raw_args.split(",")]
+    args = []
+    for m in ARG_SPLIT_PATTERN.finditer(raw_args):
+        value = m.group(1) if m.group(1) is not None else (m.group(2) if m.group(2) is not None else m.group(3))
+        args.append((value or "").strip())
+    return args
 
 
 def execute_tool(tool_name: str, raw_args: str) -> str:

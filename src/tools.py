@@ -2,7 +2,10 @@
 🛠️ TOOL REGISTRY & SCHEMAS (Dành cho Role 2: Tool & Spec Engineer)
 Nơi khai báo các công cụ tra cứu & đặt lịch xem phòng trọ / căn hộ.
 Đảm bảo tất cả các hàm luôn trả về chuỗi thông báo (str), xử lý lỗi an toàn không crash app.
-(Bao gồm cả get_weather và search_flights để tương thích ngược với code cũ trong app.py)
+
+get_weather/search_flights vẫn giữ lại trong AVAILABLE_TOOLS để tương thích với các file
+boilerplate gốc của bài lab, nhưng src/app.py chỉ cho ReAct Agent gọi 3 tool đúng đề tài
+thuê nhà (xem REACT_TOOLS trong app.py) — LLM sẽ không thể gọi 2 tool ngoài phạm vi này.
 """
 
 # Cơ sở dữ liệu mẫu về phòng trọ
