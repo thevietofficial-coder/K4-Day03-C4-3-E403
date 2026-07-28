@@ -182,6 +182,21 @@ def run_all_test_cases(provider):
         run_react_agent(case["question"], provider)
 
 
+def run_one_test_case(provider, test_id: int = 1):
+    """Chạy demo nhanh đúng 1 test case (mặc định #1) rồi thôi, để tiết kiệm quota LLM."""
+    tests = load_test_cases()
+    case = next((t for t in tests if t["id"] == test_id), tests[0])
+
+    print(f"✅ Đã tải thành công {len(tests)} Test Cases — chỉ chạy demo Test #{case['id']}")
+    print("\n" + "=" * 70)
+    print(f"📌 TEST CASE #{case['id']} [{case.get('category', '')}]")
+    print(f"   Kỳ vọng: {case.get('expected_behavior', '')}")
+    print("=" * 70)
+
+    run_baseline_chatbot(case["question"], provider)
+    run_react_agent(case["question"], provider)
+
+
 def run_interactive_mode(provider):
     """Chế độ chat trực tiếp: người dùng tự gõ câu hỏi và chọn Baseline hoặc ReAct Agent."""
     print("\n" + "=" * 70)
@@ -216,5 +231,5 @@ if __name__ == "__main__":
     model_name = getattr(provider, "model_name", "Offline Mock Mode")
     print(f"🔌 LLM Provider đang hoạt động: {provider.__class__.__name__} (Model: {model_name})")
 
-    run_all_test_cases(provider)
+    run_one_test_case(provider, test_id=1)
     run_interactive_mode(provider)
