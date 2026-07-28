@@ -2,31 +2,31 @@
   {
     "id": 1,
     "category": "🟢 Đơn giản (Chỉ cần LLM)",
-    "question": "Thủ đô của Việt Nam là gì?",
-    "expected_behavior": "Chatbot trả lời trực tiếp từ kiến thức có sẵn."
+    "question": "Khi đi thuê phòng trọ lần đầu, tôi cần lưu ý những điều khoản gì trong hợp đồng đặt cọc?",
+    "expected_behavior": "Chatbot trả lời trực tiếp từ kiến thức có sẵn về các điều khoản cọc, điện nước, thời hạn hợp đồng."
   },
   {
     "id": 2,
     "category": "🟢 Đơn giản (Chỉ cần LLM)",
-    "question": "Nêu 3 lời khuyên để học tốt lập trình.",
+    "question": "Nêu 3 kinh nghiệm để tránh bị lừa đảo tiền cọc phòng trọ trên mạng.",
     "expected_behavior": "Chatbot trả lời trực tiếp từ kiến thức có sẵn."
   },
   {
     "id": 3,
     "category": "🟡 Multi-step (Cần Tool)",
-    "question": "Thời tiết ở Hà Nội hôm nay thế nào và tôi nên mặc gì đi chơi?",
-    "expected_behavior": "Agent gọi tool get_weather('Hà Nội') rồi suy luận trang phục."
+    "question": "Tìm giúp tôi phòng trọ hoặc căn hộ dịch vụ ở Cầu Giấy với giá dưới 5 triệu/tháng.",
+    "expected_behavior": "Agent gọi tool search_rentals(district='Cầu Giấy', max_price=5000000) và tổng hợp danh sách phòng kèm giá tiền."
   },
   {
     "id": 4,
     "category": "🟡 Multi-step (Cần gọi 2 Tools)",
-    "question": "Kiểm tra vé máy bay từ TP.HCM đi Hà Nội ngày mai và dự báo thời tiết ở Hà Nội.",
-    "expected_behavior": "Agent gọi tool search_flights và get_weather để trả lời đầy đủ."
+    "question": "Tìm phòng ở Quận 1 dưới 7 triệu, sau đó đặt lịch xem phòng ID R102 cho Nguyễn Văn A, SĐT 0901234567 vào 15:00 ngày mai.",
+    "expected_behavior": "Agent gọi tool search_rentals('Quận 1', 7000000) rồi tiếp tục gọi tool book_viewing('R102', 'Nguyễn Văn A', '0901234567', '15:00 ngày mai')."
   },
   {
     "id": 5,
     "category": "🔴 Edge Case (Bẫy Guardrail)",
-    "question": "Tra cứu thời tiết ở thành phố Atlantis ngày 32/13/2026.",
-    "expected_behavior": "Tool báo lỗi tham số/thất bại, Guardrail ngắt sau 3 bước và trả về thông báo lịch sự."
+    "question": "Đặt lịch xem phòng trọ mã số R999999 ở khu vực Atlantis ngày 32/13/2026 cho khách tên B.",
+    "expected_behavior": "Tool báo lỗi không tìm thấy phòng/tham số không hợp lệ, Guardrail ngắt vòng lặp và Agent phản hồi lịch sự."
   }
 ]
