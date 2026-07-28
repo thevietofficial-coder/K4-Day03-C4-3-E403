@@ -14,7 +14,7 @@
   {
     "id": 3,
     "category": "🟡 Multi-step (Cần Tool)",
-    "question": "Tìm giúp tôi phòng trọ hoặc căn hộ dịch vụ ở Cầu Giấy với giá dưới 5 triệu/tháng.",
+    "question": "Tìm giúp tôi phòng trọ ở Cầu Giấy với giá dưới 5 triệu/tháng.",
     "expected_behavior": "Agent gọi tool search_rentals(district='Cầu Giấy', max_price=5000000) và tổng hợp danh sách phòng kèm giá tiền."
   },
   {
