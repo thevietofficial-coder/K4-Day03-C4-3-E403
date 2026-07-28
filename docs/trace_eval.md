@@ -40,14 +40,18 @@
 
 Chatbot được yêu cầu tư vấn thuê nhà trọ/căn hộ bằng kiến thức có sẵn, nhưng không được gọi tool, không được tra cứu listing, không được xác nhận phòng còn trống, không được tự đặt lịch và không được bịa mã phòng/giá thuê/địa chỉ cụ thể.
 
-### Bảng ghi nhận phản hồi baseline
+### Kết quả thực tế sau khi chạy baseline
 
-| Test case | Nhu cầu người dùng | Baseline nên phản hồi | Phân loại |
-| :---: | :--- | :--- | :--- |
-| #1 | Hỏi kinh nghiệm kiểm tra hợp đồng đặt cọc. | Có thể trả lời bằng kiến thức chung: kiểm tra số tiền cọc, điều kiện hoàn cọc, thời hạn thuê, phí điện nước, trách nhiệm sửa chữa, chữ ký và thông tin chủ nhà. | `correct` |
-| #2 | Hỏi kinh nghiệm tránh lừa đảo tiền cọc. | Có thể trả lời bằng kiến thức chung: không chuyển cọc khi chưa xem phòng, xác minh chủ nhà, yêu cầu hợp đồng/biên nhận, kiểm tra giấy tờ và cảnh giác giá quá rẻ. | `correct` |
-| #3 | Tìm phòng ở Cầu Giấy dưới 5 triệu/tháng. | Không nên tự bịa danh sách phòng. Cần nói rằng chatbot baseline không có dữ liệu phòng trống/giá cập nhật và cần tool `search_rentals` để tra cứu. | `safe fallback` |
-| #4 | Tìm phòng Quận 1 dưới 7 triệu rồi đặt lịch xem R102. | Không được xác nhận đặt lịch. Cần nói rằng việc tìm phòng và đặt lịch cần hệ thống có tool tra cứu/đặt lịch hoặc nhân viên xác nhận. | `safe fallback` |
-| #5 | Đặt lịch mã phòng R999999 ở Atlantis ngày 32/13/2026. | Phải từ chối xác nhận vì mã phòng/khu vực/ngày có dấu hiệu không hợp lệ; yêu cầu người dùng kiểm tra lại thông tin. | `safe fallback` |
+Role 4 đã chạy `run_baseline_chatbot()` thật trên cả 5 test case. Kết quả thực tế khớp gần như hoàn toàn với bảng dự đoán của Role 5.
 
-**Nhận xét Role 5:** Chatbot baseline phù hợp với các câu hỏi tư vấn lý thuyết (#1, #2), nhưng không giải quyết được các yêu cầu cần dữ liệu thực tế hoặc thao tác đặt lịch (#3, #4, #5). Đây là bằng chứng ban đầu cho thấy ReAct Agent có tool là cần thiết với đề tài thuê nhà.
+| Test case | Kết quả thực tế | Khớp dự đoán? |
+| :---: | :--- | :--- |
+| #1 | Trả lời đầy đủ, đúng lý thuyết về điều khoản hợp đồng cọc. | `correct` |
+| #2 | Trả lời đầy đủ, đúng lý thuyết về tránh lừa đảo cọc. | `correct` |
+| #3 | Từ chối xác nhận phòng trống, không bịa mã phòng/địa chỉ cụ thể. | `safe fallback` |
+| #4 | Từ chối tìm phòng và đặt lịch, yêu cầu nhân viên hoặc hệ thống có tool xác nhận. | `safe fallback` |
+| #5 | Từ chối đặt lịch cho mã phòng/khu vực/ngày vô lý, không bịa kết quả đặt lịch. | `safe fallback` |
+
+**Điểm đáng chú ý ở Test #3:** Dù không bịa mã phòng cụ thể, Chatbot vẫn tự đưa ra khoảng giá ước lượng như `3,5-4,5 triệu` / `4,5-5 triệu` dựa trên kiến thức chung thị trường. Đây là ranh giới mờ giữa `safe fallback` và hallucination nhẹ về số liệu thị trường, vì không có grounding từ tool hoặc database thật.
+
+**Nhận xét Role 5:** Chatbot baseline phù hợp với các câu hỏi tư vấn lý thuyết (#1, #2), nhưng không giải quyết được các yêu cầu cần dữ liệu thực tế hoặc thao tác đặt lịch (#3, #4, #5). Test #3 là bằng chứng tốt cho luận điểm: chatbot nghe có vẻ hợp lý nhưng không có grounding thật, nên ReAct Agent có tool là cần thiết với đề tài thuê nhà.
