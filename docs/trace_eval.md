@@ -32,18 +32,22 @@
 
 ---
 
-## 🔍 3. SO SÁNH PHẢN HỒI (TEST CASE #3)
+## 🔍 3. MỐC 2 - CHATBOT BASELINE EVALUATION (ROLE 5)
 
-**Câu hỏi**: *"Thời tiết ở Hà Nội hôm nay thế nào và tôi nên mặc gì đi chơi?"*
+**Baseline protocol:** `system prompt + user message -> 1 LLM call -> final response`, số lần gọi tool = `0`.
 
-### 🤖 Chatbot Baseline:
-* **Phản hồi**: *"Tôi không có truy cập Internet thời gian thực nên không biết thời tiết hôm nay ở Hà Nội."*
-* **Nhận xét**: An toàn nhưng không giải quyết được nhu cầu thực tế của người dùng.
+### Prompt baseline đã dùng (Role 3)
 
-### 🧠 ReAct Agent:
-* **Thought 1**: Cần tra cứu thời tiết Hà Nội.
-* **Action 1**: `get_weather['Hà Nội']`
-* **Observation 1**: `Thời tiết Hà Nội: 28°C, Nắng nhẹ, Độ ẩm 65%.`
-* **Thought 2**: Đã có thông tin 28°C nắng nhẹ, đưa ra lời khuyên trang phục.
-* **Final Answer**: *"Thời tiết Hà Nội hôm nay 28°C, nắng nhẹ. Bạn nên mặc quần áo thoáng mát!"*
-* **Nhận xét**: Hoàn thành xuất sắc nhiệm vụ nhờ sự kết hợp giữa suy luận và công cụ.
+Chatbot được yêu cầu tư vấn thuê nhà trọ/căn hộ bằng kiến thức có sẵn, nhưng không được gọi tool, không được tra cứu listing, không được xác nhận phòng còn trống, không được tự đặt lịch và không được bịa mã phòng/giá thuê/địa chỉ cụ thể.
+
+### Bảng ghi nhận phản hồi baseline
+
+| Test case | Nhu cầu người dùng | Baseline nên phản hồi | Phân loại |
+| :---: | :--- | :--- | :--- |
+| #1 | Hỏi kinh nghiệm kiểm tra hợp đồng đặt cọc. | Có thể trả lời bằng kiến thức chung: kiểm tra số tiền cọc, điều kiện hoàn cọc, thời hạn thuê, phí điện nước, trách nhiệm sửa chữa, chữ ký và thông tin chủ nhà. | `correct` |
+| #2 | Hỏi kinh nghiệm tránh lừa đảo tiền cọc. | Có thể trả lời bằng kiến thức chung: không chuyển cọc khi chưa xem phòng, xác minh chủ nhà, yêu cầu hợp đồng/biên nhận, kiểm tra giấy tờ và cảnh giác giá quá rẻ. | `correct` |
+| #3 | Tìm phòng ở Cầu Giấy dưới 5 triệu/tháng. | Không nên tự bịa danh sách phòng. Cần nói rằng chatbot baseline không có dữ liệu phòng trống/giá cập nhật và cần tool `search_rentals` để tra cứu. | `safe fallback` |
+| #4 | Tìm phòng Quận 1 dưới 7 triệu rồi đặt lịch xem R102. | Không được xác nhận đặt lịch. Cần nói rằng việc tìm phòng và đặt lịch cần hệ thống có tool tra cứu/đặt lịch hoặc nhân viên xác nhận. | `safe fallback` |
+| #5 | Đặt lịch mã phòng R999999 ở Atlantis ngày 32/13/2026. | Phải từ chối xác nhận vì mã phòng/khu vực/ngày có dấu hiệu không hợp lệ; yêu cầu người dùng kiểm tra lại thông tin. | `safe fallback` |
+
+**Nhận xét Role 5:** Chatbot baseline phù hợp với các câu hỏi tư vấn lý thuyết (#1, #2), nhưng không giải quyết được các yêu cầu cần dữ liệu thực tế hoặc thao tác đặt lịch (#3, #4, #5). Đây là bằng chứng ban đầu cho thấy ReAct Agent có tool là cần thiết với đề tài thuê nhà.
