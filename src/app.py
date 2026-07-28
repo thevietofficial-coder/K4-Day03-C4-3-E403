@@ -111,16 +111,20 @@ def execute_tool(tool_name: str, raw_args: str) -> str:
         return f"LỖI: Tool '{tool_name}' gặp sự cố khi thực thi: {e}"
 
 
-def run_react_agent(user_query: str, provider) -> str:
+def run_react_agent(user_query: str, provider) -> dict:
     """
     Vòng lặp ReAct Agent thật: gọi LLM -> parse Action -> thực thi Tool ->
     chèn Observation thật vào prompt -> lặp lại cho tới Final Answer hoặc
     chạm phanh Guardrail MAX_ITERATIONS.
+
+    Trả về dict {"final_answer": str, "trace": [...], "guardrail_triggered": bool}
+    để cả CLI (in ra console) lẫn giao diện web đều dùng chung 1 nguồn logic.
     """
     print(f"\n🤖 [REACT AGENT] Câu hỏi: {user_query}")
 
     transcript = ""        # Toàn bộ lịch sử Thought/Action/Observation đã tích lũy
     last_signature = None  # Để phát hiện Agent bị lặp lại đúng 1 hành động
+    trace = []              # Lịch sử có cấu trúc để hiển thị lên giao diện web
 
     for step in range(1, MAX_ITERATIONS + 1):
         print(f"\n--- 🔄 Vòng lặp ReAct (Step {step}/{MAX_ITERATIONS}) ---")
@@ -132,7 +136,8 @@ def run_react_agent(user_query: str, provider) -> str:
         if kind == "final":
             print(f"🧠 {response.strip()}")
             print(f"🏁 Final Answer: {payload}")
-            return payload
+            trace.append({"step": step, "type": "final", "thought": response.strip(), "final_answer": payload})
+            return {"final_answer": payload, "trace": trace, "guardrail_triggered": False}
 
         if kind == "invalid":
             print(f"⚠️ LLM trả về sai định dạng:\n{response.strip()}")
@@ -140,6 +145,7 @@ def run_react_agent(user_query: str, provider) -> str:
                 "LỖI: Không nhận diện được Action hoặc Final Answer. "
                 "Định dạng bắt buộc: 'Action: ten_cong_cu[\"tham_so_1\", \"tham_so_2\"]'."
             )
+            trace.append({"step": step, "type": "invalid", "thought": response.strip(), "observation": observation})
             transcript += f"{response.strip()}\nObservation: {observation}\n"
             continue
 
@@ -156,6 +162,10 @@ def run_react_agent(user_query: str, provider) -> str:
         last_signature = signature
 
         print(f"👁️ Observation: {observation}")
+        trace.append({
+            "step": step, "type": "action", "thought": response.strip(),
+            "tool": tool_name, "args": raw_args, "observation": observation,
+        })
         transcript += f"{response.strip()}\nObservation: {observation}\n"
 
     print(f"🛡️ GUARDRAIL TRIGGERED: Đã đạt giới hạn tối đa {MAX_ITERATIONS} bước. Ngắt lặp an toàn!")
@@ -164,7 +174,8 @@ def run_react_agent(user_query: str, provider) -> str:
         "Bạn vui lòng thử lại với câu hỏi cụ thể hơn hoặc chia nhỏ yêu cầu."
     )
     print(f"🏁 Final Answer (Safe Fallback): {fallback}")
-    return fallback
+    trace.append({"step": MAX_ITERATIONS, "type": "guardrail", "final_answer": fallback})
+    return {"final_answer": fallback, "trace": trace, "guardrail_triggered": True}
 
 
 def run_all_test_cases(provider):

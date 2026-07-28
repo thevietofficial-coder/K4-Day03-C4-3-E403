@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🏠 Trợ Lý Tìm Nhà Trọ</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon">🏠</span>
+        <div>
+          <h1>Trợ Lý Tìm Nhà Trọ</h1>
+          <p class="subtitle">Chatbot Baseline vs ReAct Agent — Lab 03 VinUni</p>
+        </div>
+      </div>
+      <div class="provider-badge">
+        🔌 {{ provider_name }} <span class="model-name">({{ model_name }})</span>
+      </div>
+    </header>
+
+    <div class="mode-bar">
+      <span class="mode-label">Chế độ:</span>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="mode-btn" data-mode="baseline">💬 Chatbot</button>
+        <button class="mode-btn active" data-mode="agent">🧠 ReAct Agent</button>
+        <button class="mode-btn" data-mode="both">⚖️ So sánh cả hai</button>
+      </div>
+    </div>
+
+    <main class="chat-window" id="chatWindow">
+      <div class="msg msg-assistant">
+        <div class="msg-avatar">🏠</div>
+        <div class="msg-bubble">
+          Chào bạn! Mình là trợ lý tìm phòng trọ / căn hộ cho thuê. Hãy hỏi mình về kinh nghiệm thuê nhà,
+          hoặc nhờ mình tìm phòng, đặt lịch xem phòng, tính chi phí sinh hoạt hàng tháng nhé!
+        </div>
+      </div>
+    </main>
+
+    <form class="composer" id="composerForm">
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Nhập câu hỏi của bạn... (VD: Tìm phòng ở Cầu Giấy dưới 5 triệu)"
+        autocomplete="off"
+        required
+      >
+      <button type="submit" id="sendBtn">
+        <span class="send-icon">➤</span>
+      </button>
+    </form>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
