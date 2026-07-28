@@ -182,6 +182,30 @@ def run_all_test_cases(provider):
         run_react_agent(case["question"], provider)
 
 
+def run_interactive_mode(provider):
+    """Chế độ chat trực tiếp: người dùng tự gõ câu hỏi và chọn Baseline hoặc ReAct Agent."""
+    print("\n" + "=" * 70)
+    print("💬 CHẾ ĐỘ TƯƠNG TÁC — Gõ câu hỏi của bạn (gõ 'exit' để thoát)")
+    print("=" * 70)
+
+    while True:
+        user_query = input("\n👤 Bạn hỏi: ").strip()
+        if not user_query:
+            continue
+        if user_query.lower() in ("exit", "quit", "thoat", "thoát"):
+            print("👋 Tạm biệt!")
+            break
+
+        mode = input("   Chọn chế độ [1=Baseline Chatbot / 2=ReAct Agent / 3=Cả hai] (mặc định 2): ").strip()
+        if mode == "1":
+            run_baseline_chatbot(user_query, provider)
+        elif mode == "3":
+            run_baseline_chatbot(user_query, provider)
+            run_react_agent(user_query, provider)
+        else:
+            run_react_agent(user_query, provider)
+
+
 if __name__ == "__main__":
     print("==================================================")
     print("🏫 ĐẠI HỌC VINUNI - BÀI LAB 3: CHATBOT VS REACT AGENT")
@@ -193,3 +217,4 @@ if __name__ == "__main__":
     print(f"🔌 LLM Provider đang hoạt động: {provider.__class__.__name__} (Model: {model_name})")
 
     run_all_test_cases(provider)
+    run_interactive_mode(provider)
