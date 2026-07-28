@@ -1,0 +1,33 @@
+flowchart TD
+    Start([Câu hỏi từ người dùng]) --> Q1{Câu hỏi có cần dữ liệu<br/>thời gian thực hoặc thực hiện<br/>hành động cụ thể không?}
+
+    Q1 -- "Không — chỉ tư vấn lý thuyết<br/>(VD: kinh nghiệm, quy định, mẹo chung)" --> Chatbot[["💬 CHATBOT BASELINE PATH<br/>1 LLM call, không gọi Tool"]]
+    Chatbot --> ChatbotAnswer[Trả lời trực tiếp từ<br/>kiến thức sẵn có của LLM]
+    ChatbotAnswer --> End1([Kết thúc])
+
+    Q1 -- "Có — cần tra cứu phòng,<br/>đặt lịch hoặc tính chi phí" --> Agent[["🧠 REACT AGENT PATH<br/>Thought → Action → Observation"]]
+
+    Agent --> Q2{Loại yêu cầu cụ thể?}
+    Q2 -- "Tìm/tra cứu phòng trọ" --> T1[Action: search_rentals district, max_price, room_type]
+    Q2 -- "Đặt lịch xem phòng" --> T2[Action: book_viewing room_id, name, phone, time]
+    Q2 -- "Ước tính chi phí sinh hoạt" --> T3[Action: calculate_monthly_cost room_id, kwh, m3]
+
+    T1 --> Obs[👁️ Observation thật<br/>application chèn kết quả Tool]
+    T2 --> Obs
+    T3 --> Obs
+
+    Obs --> Q3{Đã đủ thông tin<br/>để trả lời chưa?}
+    Q3 -- "Chưa đủ — cần gọi thêm Tool khác<br/>(VD: search rồi mới book)" --> Q2
+    Q3 -- "Tool báo LỖI / tham số vô lý<br/>(mã phòng sai, ngày 32/13...)" --> Guard{Đã chạm<br/>MAX_ITERATIONS?}
+    Q3 -- "Đủ rồi" --> Final[🏁 Final Answer<br/>có Grounding từ Observation]
+
+    Guard -- "Chưa chạm — còn budget" --> Q2
+    Guard -- "Đã chạm giới hạn" --> Fallback[🛡️ Safe Fallback<br/>Xin lỗi lịch sự, không bịa dữ liệu]
+
+    Final --> End2([Kết thúc])
+    Fallback --> End2
+
+    style Chatbot fill:#4a90d9,color:#fff
+    style Agent fill:#e07b39,color:#fff
+    style Fallback fill:#c0392b,color:#fff
+    style Final fill:#27ae60,color:#fff
