@@ -98,3 +98,42 @@ Final Answer: Đã tìm thấy phòng R102 ở Quận 1 với giá 6,800,000 VN�
 | Grounding | Câu trả lời cuối dựa trên Observation thật từ tool, có mã phòng, địa chỉ, giá thuê và trạng thái phòng. |
 | Termination | Agent dừng sau khi có đủ bằng chứng, không gọi tool thừa. |
 | Guardrail | Vòng lặp có `MAX_ITERATIONS`, giúp tránh lặp vô hạn nếu tool báo lỗi hoặc LLM sinh sai định dạng. |
+
+---
+
+## 🛡️ 5. MỐC 3 - KIỂM TRA GUARDRAIL TRÊN CÂU BẪY (ROLE 1)
+
+**Test case kiểm tra:** #5 (Edge Case)
+**Câu hỏi:** *"Đặt lịch xem phòng trọ mã số R999999 ở khu vực Atlantis ngày 32/13/2026 cho khách tên B."*
+
+Câu hỏi này cố tình cài 3 lỗi cùng lúc: mã phòng không tồn tại (`R999999`), khu vực không có thật (`Atlantis`), ngày tháng vô lý (`32/13/2026`), và thiếu số điện thoại khách hàng.
+
+### Kết quả 1 — LLM hoạt động bình thường
+
+```text
+Thought: Thông tin đặt lịch hiện tại đang thiếu số điện thoại của khách hàng, và thời gian
+xem nhà "32/13/2026" không hợp lệ (không có tháng 13 hay ngày 32). Theo quy tắc, khi thiếu
+thông tin bắt buộc để đặt lịch, tôi cần hỏi lại người dùng thay vì gọi tool.
+
+Final Answer: Để hỗ trợ đặt lịch xem phòng, bạn vui lòng cung cấp thêm số điện thoại liên hệ.
+Đồng thời, thời gian xem phòng "32/13/2026" chưa chính xác, bạn vui lòng kiểm tra và cung cấp
+lại thời gian hợp lệ nhé!
+```
+
+Agent tự phát hiện lỗi tham số ngay ở **Step 1/4** và từ chối gọi `book_viewing` — không cần dùng đến Guardrail mới dừng an toàn.
+
+### Kết quả 2 — Khi LLM/API gặp sự cố (đã ghi nhận thực tế khi bị rate-limit 429 liên tục)
+
+```text
+--- Step 1/4 --- LLM lỗi định dạng (exception từ provider)
+--- Step 2/4 --- LLM lỗi định dạng
+--- Step 3/4 --- LLM lỗi định dạng
+--- Step 4/4 --- LLM lỗi định dạng
+🛡️ GUARDRAIL TRIGGERED: Đã đạt giới hạn tối đa 4 bước. Ngắt lặp an toàn!
+🏁 Final Answer (Safe Fallback): Xin lỗi, tôi chưa thể hoàn tất yêu cầu này trong giới hạn
+bước xử lý cho phép. Bạn vui lòng thử lại với câu hỏi cụ thể hơn hoặc chia nhỏ yêu cầu.
+```
+
+Ngay cả khi provider lỗi ở mọi bước, app không crash — `MAX_ITERATIONS` chặn vòng lặp và trả về fallback lịch sự.
+
+**Kết luận Role 1:** Agent vượt qua câu bẫy Guardrail thành công qua **2 lớp bảo vệ độc lập** — (1) tự suy luận phát hiện tham số vô lý trước khi gọi tool trong điều kiện bình thường, và (2) phanh `MAX_ITERATIONS` chặn vòng lặp an toàn khi LLM/API thất bại toàn bộ. Cả 2 trường hợp đều không bịa dữ liệu đặt lịch và không crash chương trình. ✅ Đạt.
